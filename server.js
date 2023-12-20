@@ -1,13 +1,14 @@
 const express = require('express');
 const cors = require('cors');
 const db = require('./database');
+const pool = require("./pool");
 
-  
 const app = express();
 const PORT = process.env.PORT || 3001;
 
 app.use(cors());
 app.use(express.json());
+
 
 app.get('/', (req, res) => {
     res.send(db);
@@ -15,7 +16,13 @@ app.get('/', (req, res) => {
 app.post('/login/api', (req, res) => {    
     if(!(db.find((user)=> user.username === req.body.email))){              
         db.push({username: req.body.email, name: req.body.name})
-    }    
+    }
+
+})
+
+app.post('/extension-data',(req,res)=>{
+    console.log(req.body);
+    res.status(204).send();
 })
 
 app.get('/user/freq', (req, res)=>{
