@@ -4,7 +4,7 @@ const db = require('./database');
 const pool = require("./pool");
 const jwt = require("jsonwebtoken");
 const bcrypt = require('bcrypt');
-
+const secret = "I have a scret";
 const app = express();
 const PORT = process.env.PORT || 3001;
 
@@ -20,7 +20,12 @@ app.get("/",(req,res,next)=>{
 })
 const verifyMiddleware = (req,res,next) =>{
     const authorizationHeader = req.header("Authorization")
-
+    if(req.user){
+        return res.status(401).json({
+            sucess: false,
+            message: "Invalid Request"
+        })
+    }
     if (!authorizationHeader || !authorizationHeader.startsWith("Bearer ")) {
         return res
             .status(401)
@@ -28,7 +33,7 @@ const verifyMiddleware = (req,res,next) =>{
     }
     
     const token = (authorizationHeader.split())[1];
-    const secret = "I have a scret";
+    
     const decode = jwt.verify(token,secret);
     req.user = decode;
     next();
@@ -45,6 +50,8 @@ app.post('/signup/api', async (req, res) => {
                 'INSERT INTO "User"(username,password,email) VALUES($1,$2,$3)',
                 [req.username,hash,req.email]
             );
+            const token = jwt.sign({payload: {username: req.username}}, secret);
+            res.status(200).json({success: true,token});
         }
         catch(err){
             res.status(500).send("Error sending a query");
