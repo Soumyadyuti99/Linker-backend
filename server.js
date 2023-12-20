@@ -2,6 +2,8 @@ const express = require('express');
 const cors = require('cors');
 const db = require('./database');
 const pool = require("./pool");
+const jwt = require("jsonwebtoken");
+const bcrypt = require('bcrypt');
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -13,12 +15,79 @@ app.use(express.json());
 app.get('/', (req, res) => {
     res.send(db);
 })
-app.post('/login/api', (req, res) => {    
-    if(!(db.find((user)=> user.username === req.body.email))){              
-        db.push({username: req.body.email, name: req.body.name})
-    }
+app.get("/",(req,res,next)=>{
 
 })
+const verifyMiddleware = (req,res,next) =>{
+    const authorizationHeader = req.header("Authorization")
+
+    if (!authorizationHeader || !authorizationHeader.startsWith("Bearer ")) {
+        return res
+            .status(401)
+            .json({ success: false, message: "Invalid authorization header" });
+    }
+    
+    const token = (authorizationHeader.split())[1];
+    const secret = "I have a scret";
+    const decode = jwt.verify(token,secret);
+    req.user = decode;
+    next();
+}
+
+
+app.post('/signup/api', async (req, res) => {    
+    
+    const saltRounds = 10;
+    bcrypt.hash(req.password, saltRounds, async (err, hash) => {
+
+        try{
+            await pool.query(
+                'INSERT INTO "User"(username,password,email) VALUES($1,$2,$3)',
+                [req.username,hash,req.email]
+            );
+        }
+        catch(err){
+            res.status(500).send("Error sending a query");
+        }
+    });
+
+})
+app.post('/login/api', async (req, res) => {    
+    
+
+    try{
+        const password = (await pool.query(
+            'SELECT password FROM "User" WHERE username=$1',
+            [req.username]
+        ).rows[0].password);
+        bcrypt.compare(req.password, password, async (err, result) => {
+            if(err){
+                console.error(error);
+                return res
+                .status(401)
+                .json({ success: false, message: "Invalid comparing algo" });
+            }
+            if( !result ) {
+                return res
+                .status(403)
+                .json({ success: false, message: "Unauthorized access" });
+            }
+            return res
+            .status(200)
+            .json({
+                success: true,
+                message: "User is loggedin Successfully. Congrats!"
+            });
+        })
+    }
+    catch(err){
+        return res
+        .status(500)
+        .send("Error sending a query");
+    }
+});
+
+
 
 app.post('/extension-data',(req,res)=>{
     console.log(req.body);
