@@ -4,12 +4,18 @@ const db = require('./database');
 const pool = require("./pool");
 const jwt = require("jsonwebtoken");
 const bcrypt = require('bcrypt');
-const secret = "I have a scret";
 const app = express();
 const PORT = process.env.PORT || 3001;
+const auth = require('./oauth.js');
+const passport = require('passport');
+require('dotenv').config();
 
 app.use(cors());
 app.use(express.json());
+
+app.use(passport.initialize());
+app.use(passport.session());
+app.use('/', auth);
 
 
 app.get('/', (req, res) => {
@@ -18,6 +24,7 @@ app.get('/', (req, res) => {
 app.get("/",(req,res,next)=>{
 
 })
+
 const verifyMiddleware = (req,res,next) =>{
     const authorizationHeader = req.header("Authorization")
     if(req.user){
@@ -34,7 +41,7 @@ const verifyMiddleware = (req,res,next) =>{
     
     const token = (authorizationHeader.split())[1];
     
-    const decode = jwt.verify(token,secret);
+    const decode = jwt.verify(token,process.env.secret);
     req.user = decode;
     next();
 }
@@ -47,10 +54,10 @@ app.post('/signup/api', async (req, res) => {
 
         try{
             await pool.query(
-                'INSERT INTO "User"(username,password,email) VALUES($1,$2,$3)',
-                [req.username,hash,req.email]
+                'INSERT INTO "User"(password,email) VALUES($1,$2)',
+                [hash,req.email]
             );
-            const token = jwt.sign({payload: {username: req.username}}, secret);
+            const token = jwt.sign({payload: {email: req.email}}, process.env.secret);
             res.status(200).json({success: true,token});
         }
         catch(err){
@@ -64,8 +71,8 @@ app.post('/login/api', async (req, res) => {
 
     try{
         const password = (await pool.query(
-            'SELECT password FROM "User" WHERE username=$1',
-            [req.username]
+            'SELECT password FROM "User" WHERE email=$1',
+            [req.email]
         ).rows[0].password);
         bcrypt.compare(req.password, password, async (err, result) => {
             if(err){
@@ -79,11 +86,12 @@ app.post('/login/api', async (req, res) => {
                 .status(403)
                 .json({ success: false, message: "Unauthorized access" });
             }
+            const token = jwt.sign({payload: {email: req.email}}, process.env.secret);
             return res
             .status(200)
             .json({
                 success: true,
-                message: "User is loggedin Successfully. Congrats!"
+                token
             });
         })
     }
