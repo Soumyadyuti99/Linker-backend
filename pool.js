@@ -1,4 +1,6 @@
 require("dotenv").config()
+const {Pool} = require('pg')
+
 const pool = new Pool({
     user: process.env.user,
     password: process.env.password,
@@ -7,4 +9,4 @@ const pool = new Pool({
     database: "Linker"
 });
 
-module.export = pool;
+module.exports = pool;

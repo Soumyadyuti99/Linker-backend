@@ -8,7 +8,14 @@ const app = express();
 const PORT = process.env.PORT || 3001;
 const auth = require('./oauth.js');
 const passport = require('passport');
+const session = require('express-session');
 require('dotenv').config();
+
+app.use(session({
+    secret: 'your-secret-key',
+    resave: false,
+    saveUninitialized: true,
+  }));
 
 app.use(cors());
 app.use(express.json());
@@ -48,16 +55,15 @@ const verifyMiddleware = (req,res,next) =>{
 
 
 app.post('/signup/api', async (req, res) => {    
-    
     const saltRounds = 10;
-    bcrypt.hash(req.password, saltRounds, async (err, hash) => {
+    bcrypt.hash(req.body.password, saltRounds, async (err, hash) => {
 
         try{
             await pool.query(
                 'INSERT INTO "User"(password,email) VALUES($1,$2)',
-                [hash,req.email]
+                [hash,req.body.email]
             );
-            const token = jwt.sign({payload: {email: req.email}}, process.env.secret);
+            const token = jwt.sign({payload: {email: req.body.email}}, process.env.secret);
             res.status(200).json({success: true,token});
         }
         catch(err){
@@ -72,9 +78,9 @@ app.post('/login/api', async (req, res) => {
     try{
         const password = (await pool.query(
             'SELECT password FROM "User" WHERE email=$1',
-            [req.email]
+            [req.body.email]
         ).rows[0].password);
-        bcrypt.compare(req.password, password, async (err, result) => {
+        bcrypt.compare(req.body.password, password, async (err, result) => {
             if(err){
                 console.error(error);
                 return res
@@ -86,7 +92,7 @@ app.post('/login/api', async (req, res) => {
                 .status(403)
                 .json({ success: false, message: "Unauthorized access" });
             }
-            const token = jwt.sign({payload: {email: req.email}}, process.env.secret);
+            const token = jwt.sign({payload: {email: req.body.email}}, process.env.secret);
             return res
             .status(200)
             .json({
