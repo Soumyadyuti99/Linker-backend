@@ -76,10 +76,11 @@ app.post('/login/api', async (req, res) => {
     
 
     try{
-        const password = (await pool.query(
+        const passwordObject = await pool.query(
             'SELECT password FROM "User" WHERE email=$1',
             [req.body.email]
-        ).rows[0].password);
+        );
+        const password = passwordObject.rows[0].password;
         bcrypt.compare(req.body.password, password, async (err, result) => {
             if(err){
                 console.error(error);
@@ -102,6 +103,7 @@ app.post('/login/api', async (req, res) => {
         })
     }
     catch(err){
+        console.error(err);
         return res
         .status(500)
         .send("Error sending a query");

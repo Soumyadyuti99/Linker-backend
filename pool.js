@@ -6,7 +6,7 @@ const pool = new Pool({
     password: process.env.password,
     host: "localhost",
     port: 5432,
-    database: "Linker"
+    database: "linker"
 });
 
 module.exports = pool;
