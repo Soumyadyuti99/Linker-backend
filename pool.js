@@ -4,7 +4,7 @@ const {Pool} = require('pg')
 const pool = new Pool({
     user: process.env.user,
     password: process.env.password,
-    host: "localhost",
+    host: process.env.host,    
     port: 5432,
     database: "linker"
 });

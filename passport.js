@@ -14,24 +14,26 @@ passport.use(new GoogleStrategy({
   async function(accessToken, refreshToken, profile, done) {    
     
         // Your authentication and user creation logic here
-        // 'profile' contains user information from Google
-        const user = await pool.query('SELECT * FROM "Users" WHERE ID = $1', [profile.id]);        
-        if(user.rows.length !== 0){
+        // 'profile' contains user information from Google        
+        const profileId = parseInt(profile.id)        
+        const user = await pool.query('SELECT * FROM "User" WHERE ID = $1', [profileId]);               
+        if(user.rows.length !== 0){            
             done(null, user.rows[0])
         }
-        else{                        
-            let query = await pool.query('INSERT INTO "Users" (email) VALUES ($1)', [profile.getEmail()])
-            done(null, { email: profile.email});
+        else{                     
+            const email = profile.emails[0].value;                       
+            let query = await pool.query('INSERT INTO "User" (ID,email) VALUES ($1,$2)', [profileId, email])
+            done(null, { email: email});
         }    
   }
 ));
 
-passport.serializeUser((user, done)=>{    
+passport.serializeUser((user, done)=>{       
     done(null, user.email)
 })
 
 passport.deserializeUser(async(email, done)=>{
-    const user = await pool.query('SELECT * FROM "Users" WHERE ID = $1', [email]);
+    const user = await pool.query('SELECT * FROM "User" WHERE email = $1', [email]);
     if (user.rows.length !== 0) {
         // Pass the user object to done
         done(null, user.rows[0]);

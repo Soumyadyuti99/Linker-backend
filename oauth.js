@@ -4,7 +4,7 @@ require('./passport.js')
 require('dotenv').config();
 const jwt = require("jsonwebtoken");
 
-const CLIENT_URL = 'http://localhost:3001/'
+const CLIENT_URL = 'http://localhost:5174/'
 
 router.get('/login/success',(req, res)=>{    
     const token = jwt.sign({payload: {email: req.email}}, process.env.secret);               
@@ -28,7 +28,8 @@ router.get('/login/failed',(req, res)=>{
     })
 })
 
-router.get('/google', passport.authenticate("google", {scope: ["profile"]}));
+router.get('/google', passport.authenticate("google", {scope: ['https://www.googleapis.com/auth/userinfo.profile',
+'https://www.googleapis.com/auth/userinfo.email']}));
 
 router.get('/google/callback', passport.authenticate("google", {
     successRedirect: CLIENT_URL,
